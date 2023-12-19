@@ -1,0 +1,47 @@
+<?php
+require 'vendor/autoload.php'; // Assuming you have Puppeteer installed via Composer
+
+use Nesk\Puphpeteer\Puppeteer;
+use Nesk\Rialto\Data\JsFunction;
+
+Puppeteer::{$env->prependPath(__DIR__ . '/node_modules/.bin')};
+
+$browser = Puppeteer::launch([
+    'args' => [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+    ],
+]);
+
+$ipAddresses = ['1.2.3.4', '5.6.7.8', '9.10.11.12']; // Add multiple IP addresses here
+
+foreach ($ipAddresses as $ip) {
+    $page = $browser->newPage();
+
+    // Set the IP address for the page request
+    $page->setExtraHTTPHeaders(['X-Forwarded-For' => $ip]);
+
+    try {
+        $page->goto('https://rumble.com/video/<video_id>', ['waitUntil' => 'networkidle0']);
+
+        // Wait for the video to load
+        $page->waitForSelector('video');
+
+        // Play the video
+        $page->evaluate(JsFunction::createWithBody('document.querySelector("video").play();'));
+
+        // Wait for a duration (adjust as needed)
+        sleep(10);
+
+    } catch (\Exception $e) {
+        // Handle any errors or exceptions here
+        echo 'Error: ' . $e->getMessage();
+    } finally {
+        // Close the page
+        $page->close();
+    }
+}
+
+$browser->close();
+?>
